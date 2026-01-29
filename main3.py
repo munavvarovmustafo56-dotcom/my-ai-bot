@@ -9,7 +9,7 @@ from groq import Groq
 # ==========================================
 # 1. SOZLAMALAR
 # ==========================================
-TELEGRAM_TOKEN = "8572454769:AAFkZ4vYlT_WZXv-0VYHhsxSQYUEDQC-GK8"
+TELEGRAM_TOKEN = "8572454769:AAEDOYLIADXSjH8QO2ucKvU3A2AgqUFRk40"
 GROQ_API_KEY = "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"
 ADMIN_ID = 8508142416  # @userinfobot orqali olingan ID raqamingiz
 
@@ -125,3 +125,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
