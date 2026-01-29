@@ -1,16 +1,15 @@
 import asyncio
 import logging
-import os
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from groq import Groq
 
 # ==========================================
-# 1. XAVFSIZ SOZLAMALAR (Render orqali ulanadi)
+# 1. SOZLAMALAR (TOKENLAR KOD ICHIDA)
 # ==========================================
-TELEGRAM_TOKEN = os.getenv("8572454769:AAFkZ4vYlT_WZXv-0VYHhsxSQYUEDQC-GK8")
-GROQ_API_KEY = os.getenv("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")
+TELEGRAM_TOKEN = "8572454769:AAFkZ4vYlT_WZXv-0VYHhsxSQYUEDQC-GK8"
+GROQ_API_KEY = "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"
 
 # Ishlaydigan modellar
 MODELS = ["llama-3.3-70b-versatile", "mixtral-8x7b-32768"]
@@ -30,7 +29,7 @@ def main_menu():
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
     await message.answer(
-        f"Salom {message.from_user.first_name}! 🚀\nMen sizning shaxsiy yordamchingizman. Qanday yordam bera olaman?",
+        f"Salom {message.from_user.first_name}! 🚀\nMustafoning shaxsiy yordamchi botiga xush kelibsiz. Savolingizni yuboring!",
         reply_markup=main_menu()
     )
 
@@ -46,12 +45,14 @@ async def handle_messages(message: types.Message):
         return await message.answer("AO Studio kanalimizda qiziqarli Shorts videolarini tomosha qiling!")
 
     if message.text == "👨‍🎓 Magistratura ishi":
-        return await message.answer("Sizning ilmiy ishingiz: 'Energiya samaradorligini oshirishning texnologik jarayonlari va intellektual boshqaruv tizimini ishlab chiqish'.")
+        text = ("Mavzu: 'Technological processes for increasing energy efficiency and developing an intelligent control system'. "
+                "Bu mening magistrlik dissertatsiyam bo'yicha ilmiy ishim.")
+        return await message.answer(text)
 
     if message.text == "📞 Bog'lanish":
-        return await message.answer("Men bilan bog'lanish: @mustafo_admin")
+        return await message.answer("Admin bilan bog'lanish: @mustafo_admin")
 
-    # AI bilan suhbat
+    # AI bilan suhbat qismi
     if message.text:
         sent_message = await message.answer("O'ylayapman... ⚡️")
         
@@ -61,7 +62,7 @@ async def handle_messages(message: types.Message):
                 completion = client.chat.completions.create(
                     model=model_name,
                     messages=[
-                        {"role": "system", "content": "Sen aqlli va yordam beruvchi AI muhandissan. Isming Mustafoning yordamchisi."},
+                        {"role": "system", "content": "Sen Mustafoning yordamchisisan. Aqlli va muloyim javob ber."},
                         {"role": "user", "content": message.text}
                     ]
                 )
@@ -73,7 +74,7 @@ async def handle_messages(message: types.Message):
                 continue
         
         if not success:
-            await bot.edit_message_text(chat_id=message.chat.id, message_id=sent_message.message_id, text="Xatolik yuz berdi. Birozdan so'ng urinib ko'ring.")
+            await bot.edit_message_text(chat_id=message.chat.id, message_id=sent_message.message_id, text="Hozircha javob bera olmayman, birozdan so'ng urinib ko'ring.")
 
 async def main():
     logging.basicConfig(level=logging.INFO)
