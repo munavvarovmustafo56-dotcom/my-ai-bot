@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Gelectronics Ultimate</title>
+    <title>Gelectronics Service</title>
     <link rel="icon" href="/logo.jpg" type="image/jpeg">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -42,28 +42,30 @@
 <body>
     <div class="header">
         <img src="/logo.jpg" alt="LOGO" class="logo-img" onerror="this.style.display='none'">
-        <div class="subtitle">PREMIUM ELECTRONICS SERVICE</div>
+        <div class="subtitle">GRAND ELECTRONICS SERVICE</div>
     </div>
     <div id="home" class="sec active">
         <div class="card" style="text-align:center"><h3>🏢 Biz haqimizda</h3><p>2020-yildan beri xizmatdamiz. 500+ korxona bizni tanladi.</p></div>
-        <div class="card" onclick="tab('ai')"><h3>🤖 AI Chat</h3><p>Sun'iy intellekt bilan suhbat.</p></div>
-        <div class="card" onclick="tab('ord')"><h3>📝 Buyurtma Berish</h3><p>Xizmatlarga zayavka qoldiring.</p></div>
-        <div class="card" onclick="tab('sv')"><h3>🛠 Xizmatlar</h3><p>Xizmatlar ro'yxati.</p></div>
+        <div class="card" onclick="tab('ai')"><h3>🤖 AI Chat</h3><p>Faqat Gelectronics xizmatlari bo'yicha maslahatchi.</p></div>
+        <div class="card" onclick="tab('ord')"><h3>📝 Buyurtma Berish</h3><p>Inverter va Dasturlash xizmatlariga zayavka.</p></div>
+        <div class="card" onclick="tab('sv')"><h3>🛠 Xizmatlar</h3><p>Bizning asosiy yo'nalishlarimiz.</p></div>
     </div>
     <div id="ai" class="sec">
-        <div class="chat-box" id="box"><div class="msg a-msg">Assalomu alaykum! Savolingiz bormi?</div></div>
-        <div class="in-area"><input id="inp" placeholder="Yozing..." onkeypress="if(event.key==='Enter') send()"><button class="btn" onclick="send()"><i class="fas fa-paper-plane"></i></button></div>
+        <div class="chat-box" id="box"><div class="msg a-msg">Assalomu alaykum! Gelectronics servis xizmati bo'yicha qanday savolingiz bor?</div></div>
+        <div class="in-area"><input id="inp" placeholder="Savol yozing..." onkeypress="if(event.key==='Enter') send()"><button class="btn" onclick="send()"><i class="fas fa-paper-plane"></i></button></div>
     </div>
     <div id="ord" class="sec">
-        <h2 style="color:var(--p)">📝 Zayavka</h2>
+        <h2 style="color:var(--p)">📝 Xizmatga Zayavka</h2>
         <div class="form-group"><label class="form-label">Ismingiz:</label><input type="text" id="ord-name" class="form-input" placeholder="Ism Familiya"></div>
         <div class="form-group"><label class="form-label">Telefon:</label><input type="tel" id="ord-tel" class="form-input" placeholder="+998 90 123 45 67"></div>
-        <div class="form-group"><label class="form-label">Xizmat:</label><select id="ord-srv" class="form-input" style="background:#222; color:white; border:1px solid #444"><option>Inverter Ta'miri</option><option>Dasturlash</option><option>Ehtiyot Qismlar</option></select></div>
+        <div class="form-group"><label class="form-label">Xizmat:</label><select id="ord-srv" class="form-input" style="background:#222; color:white; border:1px solid #444"><option>Inverter Ta'miri</option><option>Dasturlash / Bot</option><option>Avtomatika</option></select></div>
         <button class="submit-btn" onclick="sendOrder()">YUBORISH</button>
     </div>
     <div id="sv" class="sec">
-        <div class="card"><h3>⚡ G-R-A-N-D Service</h3><p>Avtomatika va Dasturlash.</p></div>
-        <div class="card"><h3>🛒 Magazin</h3><p>Ehtiyot qismlar savdosi.</p></div>
+        <h2 style="color:var(--p)">Bizning Xizmatlar</h2>
+        <div class="card"><h3>⚡ G-R-A-N-D Service</h3><p>Inverterlarni ta'mirlash, elektron platalarni tiklash.</p></div>
+        <div class="card"><h3>💻 Dasturlash</h3><p>Telegram botlar, Saytlar va CRM tizimlar.</p></div>
+        <div class="card"><h3>⚙️ Avtomatlashtirish</h3><p>Zavod va fabrikalar uchun aqlli boshqaruv tizimlari.</p></div>
     </div>
     <div class="nav">
         <div class="nav-i active" onclick="tab('home')" id="n-home"><i class="fas fa-home"></i></div>
@@ -102,7 +104,7 @@
             if(!name || !tel) { alert("Ism va Telefon yozing!"); return; }
             try {
                 await fetch('/api/order', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({name, phone:tel, service:srv}) });
-                alert("✅ Buyurtma ketdi!"); tab('home');
+                alert("✅ Buyurtma qabul qilindi! Admin aloqaga chiqadi."); tab('home');
             } catch { alert("Xatolik!"); }
         }
     </script>
