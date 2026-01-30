@@ -2,117 +2,122 @@ import asyncio
 import logging
 import sqlite3
 import os
+import sys
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
-from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.utils.keyboard import ReplyKeyboardBuilder
-from groq import Groq
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
 from aiohttp import web
 
-# --- KONFIGURATSIYA ---
-TOKEN = "8572454769:AAEDOYLIADXSjH8QO2ucKvU3A2AgqUFRk40"
-GROQ_KEY = "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"
+# --- SOZLAMALAR ---
+TOKEN = "8572454769:AAEDOYLIADXSjH8QO2ucKvU3A2AgqUFRk40" # Tokeningiz
 ADMIN_ID = 8508142416 
 PORT = int(os.environ.get("PORT", 8080))
 
-logging.basicConfig(level=logging.INFO)
+# Web App manzili (Renderdagi saytingiz linki)
+# DIQQAT: Bu yerga o'z Render URLingizni to'g'ri yozishingiz kerak!
+WEB_APP_URL = "https://my-ai-bot-iu2e.onrender.com" 
+
+logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 bot = Bot(token=TOKEN)
-dp = Dispatcher(storage=MemoryStorage())
-client = Groq(api_key=GROQ_KEY)
+dp = Dispatcher()
 
-# --- DATABASE ---
-db = sqlite3.connect("gelectronics.db")
-cursor = db.cursor()
-cursor.execute("CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, username TEXT)")
-db.commit()
-
-# --- STATES (BOTNING HOLATLARI) ---
-class BotStates(StatesGroup):
-    main_menu = State()
-    ai_mode = State()
-
-# --- RENDER WEB SERVER ---
-async def handle(request):
-    return web.Response(text="Gelectronics System: ACTIVE")
+# ==========================================
+# 1. RENDER UCHUN SERVER (WEB APP + KEEP ALIVE)
+# ==========================================
+async def handle_webapp(request):
+    # Bu funksiya boyagi index.html faylini ochib beradi
+    return web.FileResponse('./index.html')
 
 async def start_web_server():
     app = web.Application()
-    app.router.add_get('/', handle)
+    # Asosiy sahifada index.html ochiladi
+    app.router.add_get('/', handle_webapp)
+    
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, '0.0.0.0', PORT)
     await site.start()
+    logging.info(f"🚀 SERVER {PORT} PORTIDA ISHLAMOQDA. WEB APP TAYYOR!")
 
-# --- KEYBOARDS ---
-def get_main_kb():
-    kb = ReplyKeyboardBuilder()
-    kb.row(types.KeyboardButton(text="🏢 Kompaniya"), types.KeyboardButton(text="🛠 Xizmatlar"))
-    kb.row(types.KeyboardButton(text="🤖 AI Professional Yordamchi"))
-    kb.row(types.KeyboardButton(text="📞 Kontakt"), types.KeyboardButton(text="📊 Statistika"))
-    return kb.as_markup(resize_keyboard=True)
+# ==========================================
+# 2. DATABASE (BAZA)
+# ==========================================
+db = sqlite3.connect("gelectronics_webapp.db")
+cursor = db.cursor()
+cursor.execute("CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, fullname TEXT, username TEXT)")
+db.commit()
 
-def get_back_kb():
-    kb = ReplyKeyboardBuilder()
-    kb.add(types.KeyboardButton(text="⬅️ Orqaga (Asosiy menyu)"))
-    return kb.as_markup(resize_keyboard=True)
+# ==========================================
+# 3. TUGMALAR (WEB APP TUGMASI BILAN)
+# ==========================================
+def main_menu():
+    # Maxsus Web App tugmasi
+    web_app_btn = KeyboardButton(text="🚀 Ilovani ochish (Web App)", web_app=WebAppInfo(url=WEB_APP_URL))
+    
+    # Oddiy tugmalar
+    stats_btn = KeyboardButton(text="📊 Statistika")
+    
+    # Tugmalarni joylash
+    keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [web_app_btn], # Katta tugma
+            [stats_btn]    # Pastki tugma
+        ],
+        resize_keyboard=True
+    )
+    return keyboard
 
-# --- HANDLERS ---
+# ==========================================
+# 4. BOT LOGIKASI
+# ==========================================
+
 @dp.message(Command("start"))
-async def start_cmd(message: types.Message, state: FSMContext):
-    cursor.execute("INSERT OR IGNORE INTO users VALUES (?, ?)", (message.from_user.id, message.from_user.username))
-    db.commit()
-    await state.set_state(BotStates.main_menu)
-    await message.answer("🛠 <b>Gelectronics Professional Tizimiga xush kelibsiz!</b>", 
-                         reply_markup=get_main_kb(), parse_mode="HTML")
+async def start_cmd(message: types.Message):
+    # Bazaga yozish
+    try:
+        cursor.execute("INSERT OR IGNORE INTO users (user_id, fullname, username) VALUES (?, ?, ?)", 
+                       (message.from_user.id, message.from_user.full_name, message.from_user.username))
+        db.commit()
+    except:
+        pass
 
-# AI REJIMIGA O'TISH
-@dp.message(F.text == "🤖 AI Professional Yordamchi")
-async def enter_ai_mode(message: types.Message, state: FSMContext):
-    await state.set_state(BotStates.ai_mode)
-    await message.answer("🤖 <b>AI Rejimi yoqildi.</b>\nEndi menga texnik savollaringizni yozishingiz mumkin. \n\n<i>Chiqish uchun 'Orqaga' tugmasini bosing.</i>", 
-                         reply_markup=get_back_kb(), parse_mode="HTML")
+    text = (
+        f"👋 <b>Assalomu alaykum, {message.from_user.first_name}!</b>\n\n"
+        f"💎 <b>Gelectronics AI</b> ilovasiga xush kelibsiz.\n"
+        f"Barcha xizmatlar va AI yordamchi endi bitta ilovada!\n\n"
+        f"👇 <b>Pastdagi tugmani bosib ilovaga kiring:</b>"
+    )
 
-# ORQAGA QAYTISH
-@dp.message(F.text == "⬅️ Orqaga (Asosiy menyu)")
-async def back_to_main(message: types.Message, state: FSMContext):
-    await state.set_state(BotStates.main_menu)
-    await message.answer("Asosiy menyuga qaytdingiz.", reply_markup=get_main_kb())
+    # GIF animatsiya (Agar xohlasangiz)
+    await message.answer_animation(
+        animation="https://i.pinimg.com/originals/e8/50/74/e850742a78601c4fb8b79b6999a0d816.gif",
+        caption=text,
+        reply_markup=main_menu(),
+        parse_mode="HTML"
+    )
 
-# KOMPANIYA VA XIZMATLAR (FAQAT MAIN MENUDA ISHLAYDI)
-@dp.message(BotStates.main_menu, F.text == "🏢 Kompaniya")
-async def about_comp(message: types.Message):
-    await message.answer("<b>Gelectronics</b> — Sanoat elektronikasi bo'yicha №1 markaz.", parse_mode="HTML")
-
-@dp.message(BotStates.main_menu, F.text == "📊 Statistika")
-async def show_stats(message: types.Message):
+@dp.message(F.text == "📊 Statistika")
+async def stats(message: types.Message):
     if message.from_user.id == ADMIN_ID:
         cursor.execute("SELECT COUNT(*) FROM users")
-        res = cursor.fetchone()[0]
-        await message.answer(f"📊 Foydalanuvchilar: {res}")
+        count = cursor.fetchone()[0]
+        await message.answer(f"📈 <b>Foydalanuvchilar soni:</b> {count} ta", parse_mode="HTML")
+    else:
+        await message.answer("Ilovani ochish uchun tepadagi tugmani bosing 👆")
 
-# FAQAT AI REJIMIDA SAVOLLARGA JAVOB BERISH
-@dp.message(BotStates.ai_mode)
-async def ai_chatting(message: types.Message):
-    if message.text == "⬅️ Orqaga (Asosiy menyu)": return # Keyinchalik xato bermasligi uchun
-
-    msg = await message.answer("🔍 <i>Tahlil qilinmoqda...</i>", parse_mode="HTML")
-    try:
-        chat = client.chat.completions.create(
-            messages=[{"role": "user", "content": message.text}],
-            model="llama-3.3-70b-versatile",
-        )
-        await bot.edit_message_text(chat_id=message.chat.id, message_id=msg.message_id, 
-                                    text=chat.choices[0].message.content)
-    except:
-        await bot.edit_message_text(chat_id=message.chat.id, message_id=msg.message_id, text="Xato!")
-
-# --- ISHGA TUSHIRISH ---
+# ==========================================
+# 5. ISHGA TUSHIRISH
+# ==========================================
 async def main():
+    # 1. Web serverni (index.html ni) yoqamiz
     asyncio.create_task(start_web_server())
+    
+    # 2. Botni yoqamiz
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Bot to'xtatildi")
