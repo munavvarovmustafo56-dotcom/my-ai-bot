@@ -1,7 +1,7 @@
-import asyncio, logging, sys, os, json, sqlite3
+import asyncio, logging, sys, os, sqlite3
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
 from aiohttp import web
 from groq import Groq
 
@@ -9,15 +9,13 @@ from groq import Groq
 TOKEN = "8572454769:AAEDOYLIADXSjH8QO2ucKvU3A2AgqUFRk40"
 GROQ_KEY = "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"
 
-# ⚠️ DIQQAT: XABAR BORADIGAN ODAMLAR RO'YXATI
-# Bu yerga o'z ID raqamingiz va sherigingizning ID raqamini vergul bilan yozing.
-# Masalan: [8508142416, 123456789]
-RECIPIENTS = [73759699, 168840286] 
+# SIZNING ID RAQAMINGIZ (Reklama va Adminlik uchun)
+ADMIN_ID = 8508142416 
 
 PORT = int(os.environ.get("PORT", 8080))
 WEB_APP_URL = "https://my-ai-bot-iu2e.onrender.com" 
 
-# --- FAYL YO'LLARI (GPS) ---
+# --- FAYL YO'LLARI ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INDEX_PATH = os.path.join(BASE_DIR, 'index.html')
 LOGO_PATH = os.path.join(BASE_DIR, 'logo.jpg')
@@ -26,6 +24,8 @@ logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 client = Groq(api_key=GROQ_KEY)
+
+admin_states = {} 
 
 # --- BAZA ---
 conn = sqlite3.connect("gelectronics.db")
@@ -53,15 +53,18 @@ async def handle_chat_api(request):
         data = await request.json()
         messages = data.get('messages', [])
         
+        # --- AI UCHUN "O'QITUVCHI" REJIMI ---
         system_msg = {
             "role": "system", 
             "content": (
-                "Sen 'Gelectronics' kompaniyasining jiddiy AI xodimi. "
-                "Manzilimiz: Toshkent, Sayram 7-tor ko'chasi, 52-uy. "
-                "Faqat quyidagi mavzularda gapir: "
-                "1. Inverterlar va elektron platalar ta'miri (G-R-A-N-D Service). "
-                "2. Dasturlash va Avtomatika. "
-                "Agar mijoz boshqa narsa so'rasa: 'Uzr, men faqat Gelectronics texnik masalalari bo'yicha javob bera olaman.' deb ayt."
+                "Sen 'Gelectronics' kompaniyasining Professional Maslahatchisisan. "
+                "SENING VAZIFANG: Mijozlarga aniq, lo'nda va GRAMMATIK XATOSIZ o'zbek tilida javob berish. "
+                "MAXSUS QOIDALAR: "
+                "1. Texnik atamalarni buzmasdan yoz. Masalan: 'Plita' EMAS, balki 'PLATA' (Elektron plata) deb yozish shart! "
+                "2. So'zlarni o'ylab topma, faqat adabiy va texnik to'g'ri so'zlarni ishlat. "
+                "3. O'zing haqingda so'rashsa: 'Meni 14 yoshli dasturchi Munavvarov Mustafo yaratgan' deb javob ber. "
+                "4. Kompaniya manzili: Toshkent, Sayram 7-tor ko'chasi, 52-uy. "
+                "Javoblaring qisqa va aniq bo'lsin. Imlo xatolariga yo'l qo'yma."
             )
         }
         
@@ -69,39 +72,27 @@ async def handle_chat_api(request):
         chat_completion = client.chat.completions.create(
             messages=full_history,
             model="llama-3.3-70b-versatile",
-            temperature=0.3 
+            temperature=0.1 # <--- BU JUDA MUHIM! 0.1 qildik (Xato qilmasligi uchun)
         )
         return web.json_response({'reply': chat_completion.choices[0].message.content})
     except Exception as e:
         return web.json_response({'reply': f'Xatolik: {str(e)}'})
 
-# --- BUYURTMANI 2 KISHIGA YUBORISH ---
 async def handle_order(request):
     try:
         data = await request.json()
-        
         text = (
-            f"🆘 <b>YANGI TEXNIK BUYURTMA!</b>\n"
-            f"━━━━━━━━━━━━━━━━━━\n"
+            f"🆘 <b>YANGI BUYURTMA!</b>\n"
             f"👤 <b>Mijoz:</b> {data.get('name')}\n"
             f"🏢 <b>Tashkilot:</b> {data.get('org')}\n"
             f"📞 <b>Tel:</b> {data.get('phone')}\n"
             f"📍 <b>Manzil:</b> {data.get('loc')}\n"
-            f"━━━━━━━━━━━━━━━━━━\n"
-            f"⚙️ <b>Model:</b> {data.get('model')}\n"
             f"🛠 <b>Muammo:</b> {data.get('problem')}\n"
             f"📅 <b>Vaqt:</b> {data.get('date')}\n"
         )
-        
-        # Sikl: Ro'yxatdagi har bir odamga jo'natamiz
-        for user_id in RECIPIENTS:
-            try:
-                await bot.send_message(user_id, text, parse_mode="HTML")
-            except Exception as e:
-                logging.error(f"Xabar yuborishda xato ({user_id}): {e}")
-
+        await bot.send_message(ADMIN_ID, text, parse_mode="HTML")
         return web.json_response({'status': 'success'})
-    except Exception as e:
+    except:
         return web.json_response({'status': 'error'})
 
 async def start_web_server():
@@ -114,23 +105,55 @@ async def start_web_server():
     await runner.setup()
     await web.TCPSite(runner, '0.0.0.0', PORT).start()
 
-# --- BOT ---
+# --- BOT COMMANDS ---
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
-    add_user(message.from_user.id)
-    kb = ReplyKeyboardMarkup(keyboard=[
+    user_id = message.from_user.id
+    add_user(user_id)
+    
+    buttons = [
         [KeyboardButton(text="🚀 GELECTRONICS APP", web_app=WebAppInfo(url=WEB_APP_URL))],
         [KeyboardButton(text="📍 Manzil"), KeyboardButton(text="📞 Kontaktlar")]
-    ], resize_keyboard=True)
-    await message.answer("Assalomu alaykum! App orqali buyurtma bering.", reply_markup=kb)
+    ]
+    
+    # REKLAMA TUGMASI (FAQAT ADMIN GA)
+    if user_id == ADMIN_ID:
+        buttons.append([KeyboardButton(text="📢 REKLAMA YUBORISH")])
 
-@dp.message(F.text == "📍 Manzil")
-async def location(message: types.Message):
-    await message.answer("📍 <b>Bizning manzil:</b>\nToshkent sh, Sayram 7-tor ko'chasi, 52-uy.", parse_mode="HTML")
+    kb = ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+    await message.answer("Assalomu alaykum! Xizmat turini tanlang.", reply_markup=kb)
 
-@dp.message(F.text == "📞 Kontaktlar")
-async def contact(message: types.Message):
-    await message.answer("📞 <b>Aloqa:</b>\n+998 71 200 04 05", parse_mode="HTML")
+# --- REKLAMA ---
+@dp.message(F.text == "📢 REKLAMA YUBORISH")
+async def ask_ad(message: types.Message):
+    if message.from_user.id == ADMIN_ID:
+        admin_states[ADMIN_ID] = "waiting_for_ad"
+        await message.answer("📢 <b>Reklama rejimidasiz!</b>\n\nNima yuborsangiz (Rasm, Video, Text), barchaga tarqataman.", parse_mode="HTML")
+
+@dp.message()
+async def broadcast_handler(message: types.Message):
+    user_id = message.from_user.id
+    
+    if user_id == ADMIN_ID and admin_states.get(ADMIN_ID) == "waiting_for_ad":
+        cursor.execute("SELECT user_id FROM users")
+        users = cursor.fetchall()
+        count = 0
+        
+        await message.answer("⏳ Yuborish boshlandi...")
+        for user in users:
+            try:
+                await bot.copy_message(chat_id=user[0], from_chat_id=user_id, message_id=message.message_id)
+                count += 1
+                await asyncio.sleep(0.05)
+            except: pass
+            
+        admin_states[ADMIN_ID] = None
+        await message.answer(f"✅ Reklama {count} ta odamga yuborildi!")
+        
+    elif message.text == "📍 Manzil":
+        await message.answer("📍 Toshkent, Sayram 7-tor ko'chasi, 52-uy.")
+    elif message.text == "📞 Kontaktlar":
+        await message.answer("📞 +998 71 200 04 05")
 
 async def main():
     asyncio.create_task(start_web_server())
