@@ -11,42 +11,66 @@
         :root { --p: #00f2ff; --s: #7000ff; --bg: #0a0a0a; --c: #121212; --txt: #e0e0e0; }
         body { background: var(--bg); color: var(--txt); font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 90px; }
         
+        /* --- MUSTAFO INTRO ANIMATSIYASI --- */
+        #intro {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+            flex-direction: column;
+            animation: fadeOut 0.5s ease-in-out 2.5s forwards; /* 2.5s turib keyin yo'qoladi */
+            pointer-events: none; /* Bosishga xalaqit bermaydi */
+        }
+        .intro-text {
+            font-size: 24px; font-weight: bold; color: var(--p);
+            text-shadow: 0 0 20px var(--p);
+            opacity: 0;
+            animation: textIn 1s ease-out 0.5s forwards;
+        }
+        .intro-sub {
+            font-size: 14px; color: #888; margin-top: 10px;
+            opacity: 0;
+            animation: textIn 1s ease-out 1s forwards;
+        }
+        @keyframes textIn { from {opacity:0; transform:translateY(20px);} to {opacity:1; transform:translateY(0);} }
+        @keyframes fadeOut { to {opacity:0; visibility:hidden;} }
+
+        /* --- ASOSIY STYLES --- */
         .header { text-align: center; padding: 15px; background: rgba(10,10,10,0.95); position: sticky; top: 0; z-index: 99; backdrop-filter: blur(10px); border-bottom: 1px solid #333; }
         .logo-img { max-width: 150px; filter: drop-shadow(0 0 5px var(--p)); }
         .addr { font-size: 10px; color: #888; margin-top: 5px; }
-
+        
         .sec { display: none; padding: 15px; animation: fade 0.4s; }
         .sec.active { display: block; }
         @keyframes fade { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
-
+        
         .card { background: var(--c); border-radius: 12px; padding: 15px; margin-bottom: 12px; border: 1px solid #333; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         .card::after { content:''; position:absolute; top:0; left:0; width:3px; height:100%; background:linear-gradient(to bottom, var(--p), var(--s)); }
         .card h3 { color: var(--p); margin: 0 0 5px 0; font-size: 16px; display: flex; align-items: center; gap: 8px; }
         
-        /* INPUTLAR */
+        /* FORM & CHAT STYLES */
         .form-group { margin-bottom: 12px; }
         .form-label { display: block; margin-bottom: 4px; color: #aaa; font-size: 12px; }
-        .form-input { width: 100%; padding: 10px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: white; box-sizing: border-box; outline: none; transition: 0.3s; }
-        .form-input:focus { border-color: var(--p); background: #222; }
-        textarea.form-input { resize: vertical; min-height: 60px; }
+        .form-input { width: 100%; padding: 10px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; color: white; outline: none; }
+        .submit-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--s), var(--p)); border: none; border-radius: 10px; color: white; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: 10px; box-shadow: 0 0 15px rgba(0, 242, 255, 0.2); }
         
-        .submit-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--s), var(--p)); border: none; border-radius: 10px; color: white; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: 10px; letter-spacing: 1px; box-shadow: 0 0 15px rgba(0, 242, 255, 0.2); }
-        
-        /* CHAT */
         .chat-box { height: 60vh; overflow-y: auto; padding: 10px; background: #111; border-radius: 10px; border: 1px solid #333; margin-bottom: 10px; }
         .msg { padding: 8px 12px; margin: 6px 0; border-radius: 10px; font-size: 13px; max-width: 85%; }
         .u-msg { background: var(--s); margin-left: auto; color: white; }
         .a-msg { background: #222; border: 1px solid #444; }
         .in-area { display: flex; gap: 8px; background: #1a1a1a; padding: 8px; border-radius: 25px; border: 1px solid #333; }
         .in-area input { flex: 1; background: 0; border: 0; color: #fff; padding: 5px; outline: 0; }
-        
-        /* NAV */
+
         .nav { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); width: 94%; background: rgba(20,20,20,0.95); display: flex; justify-content: space-around; padding: 12px 0; border-radius: 20px; border: 1px solid #444; backdrop-filter: blur(15px); }
         .nav-i { color: #666; font-size: 20px; cursor: pointer; transition: 0.3s; }
         .nav-i.active { color: var(--p); transform: translateY(-3px); text-shadow: 0 0 10px var(--p); }
     </style>
 </head>
 <body>
+    
+    <div id="intro">
+        <div class="intro-text">by Mustafo</div>
+        <div class="intro-sub">14 yoshli dasturchi</div>
+    </div>
 
     <div class="header">
         <img src="/logo.jpg" alt="GELECTRONICS" class="logo-img" onerror="this.style.display='none'">
@@ -54,67 +78,30 @@
     </div>
 
     <div id="home" class="sec active">
-        <div class="card" onclick="tab('ord')">
-            <h3>📝 Ariza Qoldirish</h3>
-            <p>Buzilgan qurilma yoki xizmat uchun to'liq ma'lumot qoldiring.</p>
-        </div>
-        <div class="card" onclick="tab('ai')">
-            <h3>🤖 AI Maslahatchi</h3>
-            <p>Faqat texnik savollar bo'yicha yordam beradi.</p>
-        </div>
-        <div class="card" onclick="tab('sv')">
-            <h3>🛠 Bizning Xizmatlar</h3>
-            <p>Kompaniya faoliyati bilan tanishing.</p>
-        </div>
+        <div class="card" onclick="tab('ord')"><h3>📝 Ariza Qoldirish</h3><p>Buzilgan qurilma haqida ma'lumot qoldiring.</p></div>
+        <div class="card" onclick="tab('ai')"><h3>🤖 AI Maslahatchi</h3><p>Texnik savollar va maslahatlar.</p></div>
+        <div class="card" onclick="tab('sv')"><h3>🛠 Bizning Xizmatlar</h3><p>Kompaniya xizmatlari bilan tanishing.</p></div>
     </div>
 
     <div id="ord" class="sec">
         <h2 style="color:var(--p); text-align:center">🛠 Texnik Ariza</h2>
-        
-        <div class="form-group">
-            <label class="form-label">👤 Ismingiz:</label>
-            <input type="text" id="o-name" class="form-input" placeholder="Ism Familiya">
-        </div>
-        <div class="form-group">
-            <label class="form-label">🏢 Zavod / Tashkilot nomi:</label>
-            <input type="text" id="o-org" class="form-input" placeholder="Korxona nomi">
-        </div>
-        <div class="form-group">
-            <label class="form-label">📞 Telefon raqam:</label>
-            <input type="tel" id="o-tel" class="form-input" placeholder="+998 90 ...">
-        </div>
-        <div class="form-group">
-            <label class="form-label">📍 Qayerdan (Manzil):</label>
-            <input type="text" id="o-loc" class="form-input" placeholder="Shahar yoki Tuman">
-        </div>
-        <div class="form-group">
-            <label class="form-label">⚙️ Qurilma Modeli / Turi:</label>
-            <input type="text" id="o-model" class="form-input" placeholder="Masalan: Inverter 55kW">
-        </div>
-        <div class="form-group">
-            <label class="form-label">🛠 Muammo nimada?</label>
-            <textarea id="o-prob" class="form-input" placeholder="Qanday xatolik beryapti? Nima kuygan?"></textarea>
-        </div>
-        <div class="form-group">
-            <label class="form-label">📅 Kelish vaqti:</label>
-            <input type="datetime-local" id="o-date" class="form-input">
-        </div>
-
-        <button class="submit-btn" onclick="sendOrder()">GURUHGA YUBORISH</button>
+        <div class="form-group"><label class="form-label">👤 Ismingiz:</label><input type="text" id="o-name" class="form-input" placeholder="Ism Familiya"></div>
+        <div class="form-group"><label class="form-label">🏢 Tashkilot:</label><input type="text" id="o-org" class="form-input" placeholder="Korxona nomi"></div>
+        <div class="form-group"><label class="form-label">📞 Telefon:</label><input type="tel" id="o-tel" class="form-input" placeholder="+998 90 ..."></div>
+        <div class="form-group"><label class="form-label">📍 Manzil:</label><input type="text" id="o-loc" class="form-input" placeholder="Tuman/Shahar"></div>
+        <div class="form-group"><label class="form-label">🛠 Muammo:</label><textarea id="o-prob" class="form-input" style="min-height:60px"></textarea></div>
+        <div class="form-group"><label class="form-label">📅 Vaqt:</label><input type="datetime-local" id="o-date" class="form-input"></div>
+        <button class="submit-btn" onclick="sendOrder()">YUBORISH</button>
     </div>
 
     <div id="ai" class="sec">
-        <div class="chat-box" id="box"><div class="msg a-msg">Assalomu alaykum! Men Gelectronics texnik maslahatchisiman.</div></div>
-        <div class="in-area">
-            <input id="inp" placeholder="Savol yozing..." onkeypress="if(event.key==='Enter') send()">
-            <button class="btn" onclick="send()" style="background:none; color:var(--p); font-size:20px; border:none"><i class="fas fa-paper-plane"></i></button>
-        </div>
+        <div class="chat-box" id="box"><div class="msg a-msg">Assalomu alaykum! Men Gelectronics AI yordamchisiman.</div></div>
+        <div class="in-area"><input id="inp" placeholder="Savol..." onkeypress="if(event.key==='Enter') send()"><button class="btn" onclick="send()" style="background:none; border:none; color:var(--p)"><i class="fas fa-paper-plane"></i></button></div>
     </div>
 
     <div id="sv" class="sec">
-        <div class="card"><h3>⚡ G-R-A-N-D Service</h3><p>Inverter, Soft Starter va sanoat elektronikasi remonti.</p></div>
-        <div class="card"><h3>💻 Avtomatika</h3><p>SCADA, PLC dasturlash va Web tizimlar.</p></div>
-        <div class="card"><h3>📦 Ehtiyot Qismlar</h3><p>Zavodlar uchun original detallar (Buyurtma asosida).</p></div>
+        <div class="card"><h3>⚡ G-R-A-N-D Service</h3><p>Inverter va elektronika remonti.</p></div>
+        <div class="card"><h3>💻 Avtomatika</h3><p>Dasturlash va Web tizimlar.</p></div>
     </div>
 
     <div class="nav">
@@ -127,56 +114,27 @@
     <script>
         const tg = window.Telegram.WebApp; tg.expand();
         let chatHistory = [];
-
         function tab(id) {
             document.querySelectorAll('.sec').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-i').forEach(n => n.classList.remove('active'));
             document.getElementById(id).classList.add('active');
             document.getElementById('n-'+id).classList.add('active');
         }
-
         async function send() {
             let v = document.getElementById('inp').value; if(!v) return;
-            let b = document.getElementById('box');
-            b.innerHTML += `<div class="msg u-msg">${v}</div>`;
-            document.getElementById('inp').value = ''; b.scrollTop = b.scrollHeight;
-            chatHistory.push({"role": "user", "content": v});
-            
-            let lid = 'l'+Date.now();
-            b.innerHTML += `<div class="msg a-msg" id="${lid}">...</div>`;
-            
+            let b = document.getElementById('box'); b.innerHTML += `<div class="msg u-msg">${v}</div>`;
+            document.getElementById('inp').value = ''; b.scrollTop = b.scrollHeight; chatHistory.push({"role": "user", "content": v});
+            let lid = 'l'+Date.now(); b.innerHTML += `<div class="msg a-msg" id="${lid}">...</div>`;
             try {
                 const r = await fetch('/api/chat', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({messages: chatHistory}) });
-                const d = await r.json(); document.getElementById(lid).innerHTML = d.reply;
-                chatHistory.push({"role": "assistant", "content": d.reply});
-            } catch { document.getElementById(lid).innerText = "Xatolik!"; }
-            b.scrollTop = b.scrollHeight;
+                const d = await r.json(); document.getElementById(lid).innerHTML = d.reply; chatHistory.push({"role": "assistant", "content": d.reply});
+            } catch { document.getElementById(lid).innerText = "Error"; } b.scrollTop = b.scrollHeight;
         }
-
         async function sendOrder() {
-            let data = {
-                name: document.getElementById('o-name').value,
-                org: document.getElementById('o-org').value,
-                phone: document.getElementById('o-tel').value,
-                loc: document.getElementById('o-loc').value,
-                model: document.getElementById('o-model').value,
-                problem: document.getElementById('o-prob').value,
-                date: document.getElementById('o-date').value
-            };
-
-            if(!data.name || !data.phone || !data.problem) { alert("Asosiy maydonlarni to'ldiring!"); return; }
-
-            const btn = document.querySelector('.submit-btn');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> YUBORILMOQDA...';
-            
-            try {
-                await fetch('/api/order', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
-                alert("✅ Ariza Qabul qilindi! Guruhga yuborildi.");
-                tab('home');
-                // Formalarni tozalash
-                document.querySelectorAll('.form-input').forEach(i => i.value = '');
-            } catch { alert("Server xatosi!"); }
-            btn.innerHTML = 'GURUHGA YUBORISH';
+            let data = {name: document.getElementById('o-name').value, org: document.getElementById('o-org').value, phone: document.getElementById('o-tel').value, loc: document.getElementById('o-loc').value, problem: document.getElementById('o-prob').value, date: document.getElementById('o-date').value};
+            if(!data.name || !data.phone) { alert("To'ldiring!"); return; }
+            const btn = document.querySelector('.submit-btn'); btn.innerText = 'YUBORILMOQDA...';
+            try { await fetch('/api/order', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) }); alert("✅ Yuborildi!"); tab('home'); } catch { alert("Xato!"); } btn.innerText = 'YUBORISH';
         }
     </script>
 </body>
