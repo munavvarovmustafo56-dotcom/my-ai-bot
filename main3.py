@@ -10,11 +10,9 @@ TOKEN = "8572454769:AAEDOYLIADXSjH8QO2ucKvU3A2AgqUFRk40"
 GROQ_KEY = "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"
 ADMIN_ID = 8508142416 
 PORT = int(os.environ.get("PORT", 8080))
-# Renderdagi manzilingizni tekshirib qo'ying:
 WEB_APP_URL = "https://my-ai-bot-iu2e.onrender.com" 
 
-# --- FAYL YO'LLARI (KOMPAS) ---
-# Bu qism fayllarni "yerning tagidan bo'lsa ham" topib beradi
+# --- FAYL YO'LLARI (GPS) ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INDEX_PATH = os.path.join(BASE_DIR, 'index.html')
 LOGO_PATH = os.path.join(BASE_DIR, 'logo.jpg')
@@ -36,11 +34,11 @@ def add_user(user_id):
         conn.commit()
     except: pass
 
-# --- WEB SERVER HANDLERS ---
+# --- WEB SERVER ---
 async def handle_home(request):
     if os.path.exists(INDEX_PATH):
         return web.FileResponse(INDEX_PATH)
-    return web.Response(text=f"XATOLIK: index.html topilmadi! Qidirilgan joy: {INDEX_PATH}", status=404)
+    return web.Response(text=f"XATOLIK: index.html topilmadi!", status=404)
 
 async def handle_logo(request):
     if os.path.exists(LOGO_PATH):
@@ -52,13 +50,28 @@ async def handle_chat_api(request):
         data = await request.json()
         messages = data.get('messages', [])
         
-        # Tizim xabari (System Prompt)
-        system_msg = {"role": "system", "content": "Sen Gelectronics kompaniyasining aqlli menejerisan. Mijoz bilan xushmuomala bo'l. Kompaniya 2020-yilda ochilgan."}
+        # --- BU YERDA AI CHEGARALANADI ---
+        # "Strict System Prompt" - Qattiq buyruq
+        system_msg = {
+            "role": "system", 
+            "content": (
+                "Sen 'Gelectronics' kompaniyasining professional AI maslahatchisisan. "
+                "Sen FAQAT quyidagi mavzularda gaplasha olasan: "
+                "1. G-R-A-N-D Service (Inverterlar, elektronika remonti). "
+                "2. Dasturlash va Avtomatlashtirish (Web saytlar, Botlar). "
+                "3. Kompaniya haqida (2020-yilda ochilgan, manzili Toshkent). "
+                "Agar foydalanuvchi boshqa mavzuda (siyosat, din, shaxsiy hayot, ovqat, latifa) gapirsa, "
+                "ushbu javobni qaytar: 'Uzr, men faqat Gelectronics xizmatlari bo'yicha yordam bera olaman.' "
+                "Javoblaring qisqa, aniq va o'zbek tilida bo'lsin."
+            )
+        }
+        
         full_history = [system_msg] + messages
 
         chat_completion = client.chat.completions.create(
             messages=full_history,
             model="llama-3.3-70b-versatile",
+            temperature=0.5 # Pastroq harorat = Aniqroq javob (hazil qilmaydi)
         )
         return web.json_response({'reply': chat_completion.choices[0].message.content})
     except Exception as e:
@@ -67,7 +80,7 @@ async def handle_chat_api(request):
 async def handle_order(request):
     try:
         data = await request.json()
-        text = f"🔔 <b>YANGI BUYURTMA!</b>\n\n👤 {data.get('name')}\n📞 {data.get('phone')}\n🛠 {data.get('service')}"
+        text = f"🔔 <b>YANGI BUYURTMA!</b>\n\n👤 <b>Mijoz:</b> {data.get('name')}\n📞 <b>Tel:</b> {data.get('phone')}\n🛠 <b>Xizmat:</b> {data.get('service')}"
         await bot.send_message(ADMIN_ID, text, parse_mode="HTML")
         return web.json_response({'status': 'success'})
     except:
@@ -82,9 +95,9 @@ async def start_web_server():
     runner = web.AppRunner(app)
     await runner.setup()
     await web.TCPSite(runner, '0.0.0.0', PORT).start()
-    logging.info(f"✅ SERVER ISHLADI. HTML: {INDEX_PATH}")
+    logging.info(f"SERVER ISHLADI.")
 
-# --- BOT COMMANDS ---
+# --- BOT ---
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
     add_user(message.from_user.id)
@@ -92,7 +105,7 @@ async def start_cmd(message: types.Message):
         [KeyboardButton(text="🚀 GELECTRONICS APP", web_app=WebAppInfo(url=WEB_APP_URL))],
         [KeyboardButton(text="📞 Bog'lanish"), KeyboardButton(text="📱 Tarmoqlar")]
     ], resize_keyboard=True)
-    await message.answer("Assalomu alaykum! Tizimga xush kelibsiz.", reply_markup=kb)
+    await message.answer("Assalomu alaykum! Gelectronics rasmiy botiga xush kelibsiz.", reply_markup=kb)
 
 @dp.message(Command("send"))
 async def send_broadcast(message: types.Message):
@@ -106,11 +119,11 @@ async def send_broadcast(message: types.Message):
                     await bot.send_message(user[0], f"📢 <b>YANGILIK:</b>\n{text}", parse_mode="HTML")
                     count += 1
                 except: pass
-            await message.answer(f"✅ {count} kishiga yuborildi.")
+            await message.answer(f"✅ Xabar {count} kishiga yuborildi.")
 
 @dp.message(F.text == "📞 Bog'lanish")
 async def contact(message: types.Message):
-    await message.answer("👤 Admin: @kaliusercybersecurity\n📍 Toshkent\n☎️ 71 200 04 05")
+    await message.answer("👤 Admin: @kaliusercybersecurity\n📍 Toshkent, Mirzo Ulug`bek 56A\n☎️ 71 200 04 05")
 
 @dp.message(F.text == "📱 Tarmoqlar")
 async def socials(message: types.Message):
