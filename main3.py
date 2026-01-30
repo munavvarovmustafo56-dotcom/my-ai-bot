@@ -8,13 +8,13 @@ from groq import Groq
 # --- SOZLAMALAR ---
 TOKEN = "8572454769:AAEDOYLIADXSjH8QO2ucKvU3A2AgqUFRk40"
 GROQ_KEY = "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"
-ADMIN_USERNAME = "@kaliusercybersecurity"
-ADMIN_ID = 8508142416
+ADMIN_ID = 8508142416 
 PORT = int(os.environ.get("PORT", 8080))
-# Render URLingizni tekshiring!
+# Renderdagi manzilingizni tekshirib qo'ying:
 WEB_APP_URL = "https://my-ai-bot-iu2e.onrender.com" 
 
-# --- MUHIM: FAYLLAR MANZILINI ANIQLASH ---
+# --- FAYL YO'LLARI (KOMPAS) ---
+# Bu qism fayllarni "yerning tagidan bo'lsa ham" topib beradi
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INDEX_PATH = os.path.join(BASE_DIR, 'index.html')
 LOGO_PATH = os.path.join(BASE_DIR, 'logo.jpg')
@@ -24,9 +24,20 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 client = Groq(api_key=GROQ_KEY)
 
-# --- WEB SERVER ---
+# --- BAZA (ADMIN UCHUN) ---
+conn = sqlite3.connect("gelectronics.db")
+cursor = conn.cursor()
+cursor.execute("CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY)")
+conn.commit()
+
+def add_user(user_id):
+    try:
+        cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
+        conn.commit()
+    except: pass
+
+# --- WEB SERVER HANDLERS ---
 async def handle_home(request):
-    # Fayl borligini jiddiy tekshiramiz
     if os.path.exists(INDEX_PATH):
         return web.FileResponse(INDEX_PATH)
     return web.Response(text=f"XATOLIK: index.html topilmadi! Qidirilgan joy: {INDEX_PATH}", status=404)
@@ -40,15 +51,10 @@ async def handle_chat_api(request):
     try:
         data = await request.json()
         messages = data.get('messages', [])
-        # Tizim xabari (System Prompt)
-        system_msg = {"role": "system", "content": "Sen Gelectronics kompaniyasining aqlli menejerisan. Kompaniya 2020-yilda ochilgan. Xizmatlar: Servis va Magazin. Javoblaring qisqa va o'zbek tilida bo'lsin."}
         
-        # Agar messages bo'sh bo'lsa yoki noto'g'ri bo'lsa, faqat user textni olamiz
-        user_text = data.get('text')
-        if user_text:
-            full_history = [system_msg, {"role": "user", "content": user_text}]
-        else:
-            full_history = [system_msg] + messages
+        # Tizim xabari (System Prompt)
+        system_msg = {"role": "system", "content": "Sen Gelectronics kompaniyasining aqlli menejerisan. Mijoz bilan xushmuomala bo'l. Kompaniya 2020-yilda ochilgan."}
+        full_history = [system_msg] + messages
 
         chat_completion = client.chat.completions.create(
             messages=full_history,
@@ -59,7 +65,13 @@ async def handle_chat_api(request):
         return web.json_response({'reply': f'Xatolik: {str(e)}'})
 
 async def handle_order(request):
-    return web.json_response({'status': 'ok'}) # Hozircha oddiy javob
+    try:
+        data = await request.json()
+        text = f"🔔 <b>YANGI BUYURTMA!</b>\n\n👤 {data.get('name')}\n📞 {data.get('phone')}\n🛠 {data.get('service')}"
+        await bot.send_message(ADMIN_ID, text, parse_mode="HTML")
+        return web.json_response({'status': 'success'})
+    except:
+        return web.json_response({'status': 'error'})
 
 async def start_web_server():
     app = web.Application()
@@ -70,24 +82,39 @@ async def start_web_server():
     runner = web.AppRunner(app)
     await runner.setup()
     await web.TCPSite(runner, '0.0.0.0', PORT).start()
-    logging.info(f"SERVER {PORT} DA ISHLAMOQDA. HTML MANZILI: {INDEX_PATH}")
+    logging.info(f"✅ SERVER ISHLADI. HTML: {INDEX_PATH}")
 
-# --- BOT ---
+# --- BOT COMMANDS ---
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
+    add_user(message.from_user.id)
     kb = ReplyKeyboardMarkup(keyboard=[
         [KeyboardButton(text="🚀 GELECTRONICS APP", web_app=WebAppInfo(url=WEB_APP_URL))],
         [KeyboardButton(text="📞 Bog'lanish"), KeyboardButton(text="📱 Tarmoqlar")]
     ], resize_keyboard=True)
-    await message.answer("Assalomu alaykum! Tizim ishga tushdi.", reply_markup=kb)
+    await message.answer("Assalomu alaykum! Tizimga xush kelibsiz.", reply_markup=kb)
+
+@dp.message(Command("send"))
+async def send_broadcast(message: types.Message):
+    if message.from_user.id == ADMIN_ID:
+        text = message.text.replace("/send", "").strip()
+        if text:
+            cursor.execute("SELECT user_id FROM users")
+            count = 0
+            for user in cursor.fetchall():
+                try:
+                    await bot.send_message(user[0], f"📢 <b>YANGILIK:</b>\n{text}", parse_mode="HTML")
+                    count += 1
+                except: pass
+            await message.answer(f"✅ {count} kishiga yuborildi.")
 
 @dp.message(F.text == "📞 Bog'lanish")
 async def contact(message: types.Message):
-    await message.answer(f"👤 Admin: {ADMIN_USERNAME}\n📍 Toshkent\n☎️ 71 200 04 05")
+    await message.answer("👤 Admin: @kaliusercybersecurity\n📍 Toshkent\n☎️ 71 200 04 05")
 
 @dp.message(F.text == "📱 Tarmoqlar")
 async def socials(message: types.Message):
-    await message.answer("Tarmoqlarimiz: @gelectronicsuz")
+    await message.answer("Telegram: @gelectronicsuz")
 
 async def main():
     asyncio.create_task(start_web_server())
