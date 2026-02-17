@@ -1,17 +1,23 @@
-import asyncio, logging, sys, os, sqlite3
+import asyncio
+import logging
+import sys
+import os
+import sqlite3
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
 from aiohttp import web
-from groq import Groq
+from groq import AsyncGroq  # O'ZGARISH: AsyncGroq chaqirildi
 
 # --- SOZLAMALAR ---
+# DIQQAT: API kalitlarni hech qachon birovga bermang. 
+# Men bu yerda siz berganlarini qoldirdim, lekin xavfsizlik uchun ularni yangilashni maslahat beraman.
 TOKEN = "8572454769:AAEDOYLIADXSjH8QO2ucKvU3A2AgqUFRk40"
 GROQ_KEY = "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"
-ADMIN_ID = 8508142416  # <-- O'Z ID RAQAMINGIZNI YOZING
+ADMIN_ID = 8508142416 
 
 PORT = int(os.environ.get("PORT", 8080))
-WEB_APP_URL = "https://my-ai-bot-iu2e.onrender.com" 
+WEB_APP_URL = "https://my-ai-bot-iu2e.onrender.com"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INDEX_PATH = os.path.join(BASE_DIR, 'index.html')
@@ -20,8 +26,10 @@ LOGO_PATH = os.path.join(BASE_DIR, 'logo.jpg')
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
-client = Groq(api_key=GROQ_KEY)
-admin_states = {} 
+
+# O'ZGARISH: Clientni asinxron rejimga o'tkazdik
+client = AsyncGroq(api_key=GROQ_KEY)
+admin_states = {}
 
 conn = sqlite3.connect("gelectronics.db")
 cursor = conn.cursor()
@@ -56,7 +64,6 @@ async def handle_chat_api(request):
                 break
         
         # 2. AGAR "KIM YARATGAN" DEYILSA -> MAJBURIY JAVOB QAYTARAMIZ
-        # AI ga so'rov yuborilmaydi, to'g'ridan-to'g'ri javob beradi.
         triggers = ["kim yaratgan", "kim tuzgan", "kim yasagan", "muallif", "kim qildi", "dasturchi kim"]
         if any(t in last_user_msg for t in triggers):
             forced_reply = "Meni 14 yoshli dasturchi Munavvarov Mustafo yaratgan."
@@ -74,7 +81,8 @@ async def handle_chat_api(request):
         }
         full_history = [system_msg] + messages
         
-        chat_completion = client.chat.completions.create(
+        # O'ZGARISH: Bu yerda 'await' qo'shildi va asinxron chaqiruv amalga oshirildi
+        chat_completion = await client.chat.completions.create(
             messages=full_history,
             model="llama-3.3-70b-versatile",
             temperature=0.1 # Juda jiddiy rejim
@@ -83,13 +91,13 @@ async def handle_chat_api(request):
         raw_reply = chat_completion.choices[0].message.content
         
         # 4. JAVOBNI TEKSHIRISH VA TUZATISH (POST-PROCESS)
-        # Agar AI "plita" deb yuborsa, biz uni "PLATA" ga almashtiramiz
         clean_reply = raw_reply.replace("plita", "PLATA").replace("Plita", "PLATA").replace("gaz plitasi", "elektron plata")
         
         return web.json_response({'reply': clean_reply})
 
     except Exception as e:
-        return web.json_response({'reply': f'Xatolik: {str(e)}'})
+        logging.error(f"API Xatolik: {e}") # Xatolikni terminalga chiqarish
+        return web.json_response({'reply': f'Xatolik yuz berdi: {str(e)}'})
 
 async def handle_order(request):
     try:
@@ -146,4 +154,7 @@ async def main():
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
