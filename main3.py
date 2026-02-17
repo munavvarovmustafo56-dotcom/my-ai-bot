@@ -7,17 +7,19 @@ from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
 from aiohttp import web
-from groq import AsyncGroq  # O'ZGARISH: AsyncGroq chaqirildi
+# ENG MUHIM O'ZGARISH: AsyncGroq chaqiramiz
+from groq import AsyncGroq
 
 # --- SOZLAMALAR ---
-# DIQQAT: API kalitlarni hech qachon birovga bermang. 
-# Men bu yerda siz berganlarini qoldirdim, lekin xavfsizlik uchun ularni yangilashni maslahat beraman.
+# Renderda Environment Variables ishlatish tavsiya qilinadi,
+# lekin hozir ishlashi uchun kalitlarni shu yerda qoldirdim.
 TOKEN = "8572454769:AAEDOYLIADXSjH8QO2ucKvU3A2AgqUFRk40"
 GROQ_KEY = "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"
 ADMIN_ID = 8508142416 
 
 PORT = int(os.environ.get("PORT", 8080))
-WEB_APP_URL = "https://my-ai-bot-iu2e.onrender.com"
+# Render bergan URL manzilingizni shu yerga yozing:
+WEB_APP_URL = "https://my-ai-bot-iu2e.onrender.com" 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INDEX_PATH = os.path.join(BASE_DIR, 'index.html')
@@ -27,9 +29,9 @@ logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# O'ZGARISH: Clientni asinxron rejimga o'tkazdik
+# MIYYANI ASINXRON QILAMIZ (Render qotib qolmasligi uchun)
 client = AsyncGroq(api_key=GROQ_KEY)
-admin_states = {}
+admin_states = {} 
 
 conn = sqlite3.connect("gelectronics.db")
 cursor = conn.cursor()
@@ -56,20 +58,19 @@ async def handle_chat_api(request):
         data = await request.json()
         messages = data.get('messages', [])
         
-        # 1. FOYDALANUVCHI SAVOLINI TEKSHIRAMIZ
         last_user_msg = ""
         for m in reversed(messages):
             if m['role'] == 'user':
                 last_user_msg = m['content'].lower()
                 break
         
-        # 2. AGAR "KIM YARATGAN" DEYILSA -> MAJBURIY JAVOB QAYTARAMIZ
+        # TEKSHIRUV: KIM YARATGAN?
         triggers = ["kim yaratgan", "kim tuzgan", "kim yasagan", "muallif", "kim qildi", "dasturchi kim"]
         if any(t in last_user_msg for t in triggers):
             forced_reply = "Meni 14 yoshli dasturchi Munavvarov Mustafo yaratgan."
             return web.json_response({'reply': forced_reply})
 
-        # 3. AGAR SAVOL BOSHQA BO'LSA -> AI ISHLAYDI
+        # SYSTEM PROMPT
         system_msg = {
             "role": "system", 
             "content": (
@@ -81,23 +82,25 @@ async def handle_chat_api(request):
         }
         full_history = [system_msg] + messages
         
-        # O'ZGARISH: Bu yerda 'await' qo'shildi va asinxron chaqiruv amalga oshirildi
+        # ASINXRON SO'ROV (Render uchun eng muhim joyi)
         chat_completion = await client.chat.completions.create(
             messages=full_history,
-            model="llama-3.3-70b-versatile",
-            temperature=0.1 # Juda jiddiy rejim
+            model="llama3-8b-8192", # Yengil va tez model
+            temperature=0.3,
+            max_tokens=300
         )
         
         raw_reply = chat_completion.choices[0].message.content
         
-        # 4. JAVOBNI TEKSHIRISH VA TUZATISH (POST-PROCESS)
+        # FILTR
         clean_reply = raw_reply.replace("plita", "PLATA").replace("Plita", "PLATA").replace("gaz plitasi", "elektron plata")
         
         return web.json_response({'reply': clean_reply})
 
     except Exception as e:
-        logging.error(f"API Xatolik: {e}") # Xatolikni terminalga chiqarish
-        return web.json_response({'reply': f'Xatolik yuz berdi: {str(e)}'})
+        # Xatolikni Render loglarida ko'rish uchun print qilamiz
+        print(f"XATOLIK: {e}")
+        return web.json_response({'reply': f'Xatolik: {str(e)}'})
 
 async def handle_order(request):
     try:
@@ -149,9 +152,11 @@ async def broadcast_handler(message: types.Message):
         await message.answer(f"✅ {count} kishiga yuborildi!")
 
 async def main():
-    asyncio.create_task(start_web_server())
-    await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(bot)
+    # Web server va Botni birga ishga tushirish
+    await asyncio.gather(
+        start_web_server(),
+        dp.start_polling(bot)
+    )
 
 if __name__ == "__main__":
     try:
